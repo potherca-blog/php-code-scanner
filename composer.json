@@ -1,0 +1,17 @@
+{
+    "name": "potherca/code-scanner",
+    "type": "library",
+    "license": "GPL-3.0",
+    "authors": [
+        {
+            "name": "Ben Peachey",
+            "email": "potherca@gmail.com"
+        }
+    ],
+    "require": {
+        "league/flysystem": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {"Potherca\\Scanner\\": "src/"}
+    }
+}
