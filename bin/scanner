@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+namespace Potherca\Scanner;
+
+use League\Flysystem\Filesystem;
+use League\Flysystem\Adapter\Local;
+
+require_once dirname(__DIR__) . '/vendor/autoload.php';
+
+$parameters = getopt('', ['subject:']);
+
+if (count($parameters) !== 1) {
+    $message = sprintf('Usage: %s --subject <path-to-scan>%s', __FILE__, PHP_EOL);
+    fwrite(STDERR, $message);
+} else {
+    $subject = $parameters['subject'];
+    
+    $adapter = new Local($subject);
+
+    $filesystem = new Filesystem($adapter);
+    
+    $scanner = new Scanner($filesystem);
+    
+    $result = $scanner->scan('/');
+    
+    var_dump($result);
+}
+
+/*EOF*/
