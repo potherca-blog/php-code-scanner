@@ -8,7 +8,8 @@ use PhpParser\Lexer;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
-use Potherca\Scanner\Identifier\InternalFunctionsIdentifier;
+use Potherca\Scanner\Identifier\IdentifierInterface;
+use Potherca\Scanner\Identifier\IdentifierOption;
 
 class ScannerFactory
 {
@@ -27,12 +28,18 @@ class ScannerFactory
      */
     final public function create()
     {
-        /* Grab variables */
-        $blacklist = $this->arguments->getBlacklist();
-        $directories = $this->arguments->getDirectories();
-        $whitelist = $this->arguments->getWhitelist();
+        $arguments = $this->arguments;
 
         $options = [
+            IdentifierOption::PHP_VERSION => $arguments->getPhpVersion()
+        ];
+
+        /* Grab variables */
+        $blacklist = $arguments->getBlacklist();
+        $directories = $arguments->getDirectories();
+        $whitelist = $arguments->getWhitelist();
+
+        $lexerOptions = [
             'usedAttributes' => [
                 'comments',      //  All comments that occurred between the previous non-discarded token and the current one. $node->getDocComment()
                 // 'startFilePos', // Offset into the code string of the first character that is part of the node.
@@ -46,8 +53,8 @@ class ScannerFactory
 
         /* Create simple classes (do not require other objects) */
         $parserFactory = new ParserFactory();
-        $lexer = new Lexer($options);
-        $identifier = $this->createIdentifier();
+        $lexer = new Lexer($lexerOptions);
+        $identifier = $this->createIdentifier($options);
 
         /* Create more complex classes (require other objects) */
         $filesystems = $this->createFilesystems($directories);
@@ -77,19 +84,34 @@ class ScannerFactory
         return $filesystems;
     }
 
-    private function createIdentifier()
+    private function createIdentifier($options)
     {
-        /* Create Identifier */
-        return new Identifier([
-            /* @NOTE: The order Identifiers are registered in is of importance */
-            new Identifier\DatabaseFunctionsIdentifier(),
-            new Identifier\EmailFunctionsIdentifier(),
-            new Identifier\EnvironmentFunctionsIdentifier(),
-            new Identifier\FileFunctionsIdentifier(),
-            new Identifier\InternalFunctionsIdentifier(InternalFunctionsIdentifier::VERSION_56),
-            new Identifier\NetworkFunctionsIdentifier(),
-            new Identifier\OutputIdentifier(),
-        ]);
+        $arguments = $this->arguments;
+
+        $identifiers = $arguments->getIdentifiers();
+
+        $existingClasses = get_declared_classes();
+
+        array_walk($identifiers, function ($path){
+            /** @noinspection PhpIncludeInspection */
+            require_once $path;
+        });
+
+        $declaredClasses = get_declared_classes();
+
+        $classes = array_diff($declaredClasses, $existingClasses);
+
+        $identifiers = [];
+
+        array_walk($classes, function ($className) use (&$identifiers, $options) {
+            if (is_subclass_of($className, IdentifierInterface::class) === true) {
+                $identifiers[] = new $className($options);
+            }
+        });
+
+        $options[IdentifierOption::IDENTIFIERS] = $identifiers;
+
+        return new Identifier($options);
     }
 
     private function createParser(ParserFactory $parserFactory, Lexer $lexer)
@@ -102,6 +124,7 @@ class ScannerFactory
         return new Traverser(
             new NodeTraverser(),
             [
+                /* @NOTE: The order Visitors are registered in is of importance */
                 new NameResolver(null, ['preserveOriginalNames'=>true]),
                 $visitor,
             ]
