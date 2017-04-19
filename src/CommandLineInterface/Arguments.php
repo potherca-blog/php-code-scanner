@@ -3,12 +3,15 @@
 namespace Potherca\Scanner\CommandLineInterface;
 
 use Potherca\Scanner\ArgumentInterface;
+use Potherca\Scanner\Identifier\IdentifierOption;
+use Symfony\Component\Finder\Finder;
 
 class Arguments implements ArgumentInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const ERROR_NOT_ENOUGH_PARAMETERS = 66;
     const ERROR_SUBJECT_NOT_FILE_OR_FOLDER = 67;
+    const ERROR_IDENTIFIER_NOT_FILE_OR_FOLDER = 68;
 
     /** @var array */
     private $arguments;
@@ -20,6 +23,14 @@ class Arguments implements ArgumentInterface
     private $errorCode = 0;
     /** @var string  */
     private $errorMessage = '';
+    /** @var Finder */
+    private $finder;
+    /** @var  array */
+    private $identifiers = [];
+    /** @var bool */
+    private $isHelp = false;
+    /** @var int */
+    private $phpVersion;
     /** @var array */
     private $whitelist = [];
 
@@ -49,27 +60,116 @@ class Arguments implements ArgumentInterface
     }
 
     /** @return array */
+    public function getIdentifiers()
+    {
+        return $this->identifiers;
+    }
+
+    /** @return int */
+    public function getPhpVersion()
+    {
+        return $this->phpVersion;
+    }
+
+    /** @return array */
     public function getWhitelist()
     {
         return $this->whitelist;
     }
 
+    /** @return bool */
+    public function isHelp()
+    {
+        return $this->isHelp;
+    }
+
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    final public function __construct(array $arguments)
+    final public function __construct(array $arguments, Finder $finder)
     {
         $this->arguments = $arguments;
+        $this->finder = $finder;
     }
 
     final public function parse()
     {
         $arguments = $this->arguments;
+        // @TODO: Use Symfony Finder instead of hard-coded IO lookup
+        $finder = $this->finder;
 
-        if (count($arguments) < 1) {
-            $this->errorMessage = 'Not enough parameters given';
-            $this->errorCode = self::ERROR_NOT_ENOUGH_PARAMETERS;
+        if (array_key_exists('help', $arguments) === true) {
+            $this->isHelp = true;
+        } else {
+
+            /*/ Make sure the minimum is met /*/
+            if (array_key_exists('subject', $arguments) === false) {
+                $this->errorMessage = 'Not enough parameters given';
+                $this->errorCode = self::ERROR_NOT_ENOUGH_PARAMETERS;
+            }
+
+            /*/ Set PHP version /*/
+            $this->loadPhpVersion($arguments);
+
+            /*/ Directories and Whitelist /*/
+            $this->loadDirectories($arguments);
+
+            /*/ Blacklist /*/
+            $this->loadBlackList($arguments);
+
+            /*/ Identifiers /*/
+            $this->loadIdentifiers(IdentifierOption::INTERNAL_IDENTIFIERS, $arguments);
+            $this->loadIdentifiers(IdentifierOption::IDENTIFIERS, $arguments);
         }
+    }
 
-        /*/ Directories and Whitelist /*/
+    final public function isValid()
+    {
+        return $this->errorCode === 0;
+    }
+
+    ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /**
+     * @param $key
+     * @param $arguments
+     */
+    private function loadIdentifiers($key, $arguments)
+    {
+        if ($this->isValid() === true) {
+            if (array_key_exists($key, $arguments)) {
+                $identifiers = $arguments[$key];
+
+                if (is_scalar($identifiers)) {
+                    $identifiers = [$identifiers];
+                }
+
+                $identifierPaths = [];
+
+                array_walk($identifiers, function ($identifier) use (&$identifierPaths) {
+                    /* @NOTE: Remove any trailing slash */
+                    $identifier = rtrim($identifier, '/');
+
+                    if (is_dir($identifier)) {
+                        $files = glob($identifier . '/*.php');
+
+                        $identifierPaths = array_merge($identifierPaths, $files);
+                    } elseif (is_file($identifier)) {
+                        $identifierPaths[] = $identifier;
+                    } else {
+                        $this->errorMessage = sprintf('Given identifier "%s" is not a file or directory', $identifier);
+                        $this->errorCode = self::ERROR_SUBJECT_NOT_FILE_OR_FOLDER;
+                    }
+                });
+
+                $identifierPaths = array_filter($identifierPaths);
+                $this->identifiers = array_merge($this->identifiers, $identifierPaths);
+            }
+        }
+    }
+
+    /**
+     * @param $arguments
+     */
+    private function loadDirectories($arguments)
+    {
         if ($this->isValid() === true) {
             $subjects = $arguments['subject'];
 
@@ -79,7 +179,6 @@ class Arguments implements ArgumentInterface
 
             /** @noinspection ForeachSourceInspection */
             foreach ($subjects as $subject) {
-                // @TODO: Use Symfony Finder instead of hard-coded IO lookup
                 if (is_dir($subject)) {
                     $this->directories[] = $subject;
                 } elseif (is_file($subject)) {
@@ -90,13 +189,18 @@ class Arguments implements ArgumentInterface
                     $this->errorCode = self::ERROR_SUBJECT_NOT_FILE_OR_FOLDER;
                 }
             }
-
         }
+    }
 
-        /*/ Blacklist /*/
+    /**
+     * @param $arguments
+     */
+    private function loadBlackList($arguments)
+    {
         if ($this->isValid() === true) {
-            if (array_key_exists('ignore', $arguments)) {
-                $ignore = $arguments['ignore'];
+            $key = 'ignore';
+            if (array_key_exists($key, $arguments)) {
+                $ignore = $arguments[$key];
 
                 if (is_scalar($ignore)) {
                     $ignore = [$ignore];
@@ -107,12 +211,20 @@ class Arguments implements ArgumentInterface
         }
     }
 
-    final public function isValid()
+    /**
+     * @param $arguments
+     */
+    private function loadPhpVersion($arguments)
     {
-        return $this->errorCode === 0;
-    }
+        $key = IdentifierOption::PHP_VERSION;
+        if (array_key_exists($key, $arguments)) {
+            $version = $arguments[$key];
 
-    ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+            IdentifierOption::assertExists($key);
+
+            $this->phpVersion = (int)$version;
+        }
+    }
 }
 
 /*EOF*/

@@ -4,28 +4,44 @@
 namespace Potherca\Scanner;
 
 use Potherca\Scanner\CommandLineInterface;
+use Potherca\Scanner\Identifier\IdentifierOption;
+use Potherca\Scanner\Identifier\InternalFunctionsIdentifier;
+use Symfony\Component\Finder\Finder;
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 // @TODO: Add a progress bar
 
+/*/ Default values /*/
 $output = [
     'exit-code' => CommandLineInterface\Command::EXIT_UNKNOWN_ERROR,
     'message' => 'An unknown error occurred',
     'stream' => STDERR,
 ];
 
+$defaultArguments = [
+    IdentifierOption::PHP_VERSION => InternalFunctionsIdentifier::VERSION_56,
+    IdentifierOption::INTERNAL_IDENTIFIERS => [dirname(__DIR__).'/src/Identifier/']
+];
+
+/*/ Create Objects /*/
+$finder = new Finder();
 $command = new CommandLineInterface\Command(basename(__FILE__));
 
+/*/ Build arguments /*/
 $rawArguments = getopt($command->getShortOptions(), $command->getLongOptions());
-
-$arguments = new CommandLineInterface\Arguments($rawArguments);
+$rawArguments = array_merge($defaultArguments, $rawArguments);
+$arguments = new CommandLineInterface\Arguments($rawArguments, $finder);
 
 $argumentsAreValid = $command->parseArguments($arguments);
 
-if ($argumentsAreValid === false) {
+if ($arguments->isHelp() === true) {
     $output['exit-code'] = $command->getExitCode();
-    $output['message'] = $command->getErrorMessage()."\n\n".$command->getShortUsage();
+    $output['message'] = $command->getFullUsage();
+    $output['stream'] = STDOUT;
+} elseif ($argumentsAreValid === false) {
+    $output['exit-code'] = $command->getExitCode();
+    $output['message'] = $command->getErrorMessage().PHP_EOL.$command->getShortUsage();
 } else {
 
     $nestingLevel = 100000;
@@ -39,11 +55,9 @@ if ($argumentsAreValid === false) {
 
     $results = $scanner->getResult();
 
-    $output = [
-        'exit-code' => CommandLineInterface\Command::EXIT_OK,
-        'message' => $command->convertToJson($results),
-        'stream' => STDOUT,
-    ];
+    $output['exit-code'] = $command->getExitCode();
+    $output['message'] = $command->convertToJson($results);
+    $output['stream'] = STDOUT;
 }
 
 fwrite($output['stream'], $output['message'].PHP_EOL);
