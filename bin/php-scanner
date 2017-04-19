@@ -3,28 +3,50 @@
 
 namespace Potherca\Scanner;
 
-use League\Flysystem\Filesystem;
-use League\Flysystem\Adapter\Local;
+use Potherca\Scanner\CommandLineInterface;
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-$parameters = getopt('', ['subject:']);
+// @TODO: Add a progress bar
 
-if (count($parameters) !== 1) {
-    $message = sprintf('Usage: %s --subject <path-to-scan>%s', __FILE__, PHP_EOL);
-    fwrite(STDERR, $message);
+$output = [
+    'exit-code' => CommandLineInterface\Command::EXIT_UNKNOWN_ERROR,
+    'message' => 'An unknown error occurred',
+    'stream' => STDERR,
+];
+
+$command = new CommandLineInterface\Command(basename(__FILE__));
+
+$rawArguments = getopt($command->getShortOptions(), $command->getLongOptions());
+
+$arguments = new CommandLineInterface\Arguments($rawArguments);
+
+$argumentsAreValid = $command->parseArguments($arguments);
+
+if ($argumentsAreValid === false) {
+    $output['exit-code'] = $command->getExitCode();
+    $output['message'] = $command->getErrorMessage()."\n\n".$command->getShortUsage();
 } else {
-    $subject = $parameters['subject'];
-    
-    $adapter = new Local($subject);
 
-    $filesystem = new Filesystem($adapter);
-    
-    $scanner = new Scanner($filesystem);
-    
-    $result = $scanner->scan('/');
-    
-    var_dump($result);
+    $nestingLevel = 100000;
+    ini_set('xdebug.max_nesting_level', $nestingLevel);
+
+    $factory = new ScannerFactory($arguments);
+
+    $scanner = $factory->create();
+
+    $scanner->scan();
+
+    $results = $scanner->getResult();
+
+    $output = [
+        'exit-code' => CommandLineInterface\Command::EXIT_OK,
+        'message' => $command->convertToJson($results),
+        'stream' => STDOUT,
+    ];
 }
+
+fwrite($output['stream'], $output['message'].PHP_EOL);
+exit($output['exit-code']);
 
 /*EOF*/
