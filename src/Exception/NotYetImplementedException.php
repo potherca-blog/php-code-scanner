@@ -1,6 +1,6 @@
 <?php
 
-namespace Potherca\Scanner;
+namespace Potherca\Scanner\Exception;
 
 class NotYetImplementedException extends \Exception {}
 
