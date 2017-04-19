@@ -1,0 +1,69 @@
+<?php
+
+namespace Potherca\Scanner\Identity;
+
+use Potherca\Scanner\AbstractEnum;
+
+class IdentityType extends AbstractEnum
+{
+    /*/ Other /*/
+    const IGNORE  = 'IGNORE';
+    const NONE  = '';
+    const UNKNOWN = 'UNKNOWN';
+
+    /*/ Declarations /*/
+    const DECLARE_CLASS     = 'DECLARE_CLASS';
+    const DECLARE_FUNCTION  = 'DECLARE_FUNCTION';
+    const DECLARE_METHOD    = 'DECLARE_METHOD';
+    const DECLARE_NAMESPACE = 'DECLARE_NAMESPACE';
+    const DECLARE_VARIABLE  = 'DECLARE_VARIABLE';
+
+    const DECLARE_SCALAR    = 'DECLARE_SCALAR';
+    /*/ Usage of things defined by PHP /*/
+    /* Generic calls */
+    const USAGE_INTERNAL_CLASS            = 'USAGE_INTERNAL_CLASS';
+    const USAGE_INTERNAL_CLASS_METHOD     = 'USAGE_INTERNAL_METHOD';
+    const USAGE_INTERNAL_CLASS_VARIABLE   = 'USAGE_INTERNAL_MEMBER';
+    const USAGE_INTERNAL_FUNCTION         = 'USAGE_INTERNAL_FUNCTION';
+    const USAGE_INTERNAL_VARIABLE         = 'USAGE_INTERNAL_VARIABLE';
+    /* Specific calls */
+    const USAGE_INTERNAL_DATABASE_CALL    = 'USAGE_INTERNAL_DB';
+    const USAGE_INTERNAL_EMAIL_CALL       = 'USAGE_INTERNAL_MAIL';
+    const USAGE_INTERNAL_ENVIRONMENT_CALL = 'USAGE_INTERNAL_ENV';
+    const USAGE_INTERNAL_FILESYSTEM_CALL  = 'USAGE_INTERNAL_FILE';
+    const USAGE_INTERNAL_NETWORK_CALL     = 'USAGE_INTERNAL_NET';
+
+    const USAGE_INTERNAL_OUTPUT_CALL      = 'USAGE_INTERNAL_OUTPUT ';
+    /*/ Usage of things defined by the user /*/
+    /* Generic */
+    const USAGE_USERLAND_CLASS            = 'USAGE_USERLAND_CLASS';
+    const USAGE_USERLAND_CLASS_METHOD     = 'USAGE_USERLAND_METHOD';
+    const USAGE_USERLAND_CLASS_VARIABLE   = 'USAGE_USERLAND_MEMBER';
+    const USAGE_USERLAND_FUNCTION         = 'USAGE_USERLAND_FUNCTION';
+    const USAGE_USERLAND_VARIABLE         = 'USAGE_USERLAND_VARIABLE';
+    /* Specific calls */
+    const USAGE_USERLAND_DATABASE_CALL    = 'USAGE_USERLAND_DB';
+    const USAGE_USERLAND_EMAIL_CALL       = 'USAGE_USERLAND_MAIL';
+    const USAGE_USERLAND_ENVIRONMENT_CALL = 'USAGE_USERLAND_ENV';
+    const USAGE_USERLAND_FILESYSTEM_CALL  = 'USAGE_USERLAND_FILE';
+    const USAGE_USERLAND_NETWORK_CALL     = 'USAGE_USERLAND_NET';
+
+    const USAGE_USERLAND_OUTPUT_CALL      = 'USAGE_USERLAND_OUTPUT ';
+    /*/ Usage of things defined by vendors /*/
+    /* Generic */
+    const USAGE_VENDOR_CLASS            = 'USAGE_VENDOR_CLASS';
+    const USAGE_VENDOR_CLASS_METHOD     = 'USAGE_VENDOR_METHOD';
+    const USAGE_VENDOR_CLASS_VARIABLE   = 'USAGE_VENDOR_MEMBER';
+    const USAGE_VENDOR_FUNCTION         = 'USAGE_VENDOR_FUNCTION';
+    const USAGE_VENDOR_VARIABLE         = 'USAGE_VENDOR_VARIABLE';
+    /* Specific calls */
+    const USAGE_VENDOR_DATABASE_CALL    = 'USAGE_VENDOR_DB';
+    const USAGE_VENDOR_EMAIL_CALL       = 'USAGE_VENDOR_MAIL';
+    const USAGE_VENDOR_ENVIRONMENT_CALL = 'USAGE_VENDOR_ENV';
+    const USAGE_VENDOR_FILESYSTEM_CALL  = 'USAGE_VENDOR_FILE';
+    const USAGE_VENDOR_NETWORK_CALL     = 'USAGE_VENDOR_NET';
+
+    const USAGE_VENDOR_OUTPUT_CALL      = 'USAGE_VENDOR_OUTPUT ';
+}
+
+/*EOF*/
