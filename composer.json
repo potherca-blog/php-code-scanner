@@ -1,5 +1,6 @@
 {
-    "name": "potherca/code-scanner",
+    "name": "potherca/php-scanner",
+    "description": "Naive PHP Code Scanner",
     "type": "library",
     "license": "GPL-3.0",
     "authors": [
@@ -9,9 +10,17 @@
         }
     ],
     "require": {
-        "league/flysystem": "^1.0"
+        "commerceguys/enum": "~1.0",
+        "league/flysystem": "~1.0",
+        "nikic/php-parser": "~3.0",
+        "symfony/finder": "^3.2"
     },
     "autoload": {
-        "psr-4": {"Potherca\\Scanner\\": "src/"}
-    }
+        "psr-4": {
+            "Potherca\\Scanner\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/php-scanner"
+    ]
 }
