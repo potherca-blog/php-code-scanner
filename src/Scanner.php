@@ -68,7 +68,7 @@ class Scanner
             echo '================================================================' . PHP_EOL;
             vprintf(' =====> Entering folder "%s"%s', [$prefix, PHP_EOL]);
 
-            $this->scanFileSystem($prefix, $filesystem, '/');
+            $this->scanFileSystem($prefix, $filesystem);
 
             echo '----------------------------------------------------------------' . PHP_EOL;
             echo ' <==== Leaving folder'.PHP_EOL;
@@ -120,12 +120,11 @@ class Scanner
     /**
      * @param $prefix
      * @param Filesystem $filesystem
-     * @param string $path
      *
      * @throws \League\Flysystem\FileNotFoundException
      * @throws ParserException
      */
-    private function scanFileSystem($prefix, Filesystem $filesystem, $path)
+    private function scanFileSystem($prefix, Filesystem $filesystem)
     {
         $files = $this->listFiles($filesystem);
 
@@ -133,7 +132,7 @@ class Scanner
             $path = $file['path'];
 
             if ($file['type'] === 'dir') {
-                $this->scanFileSystem($prefix, $filesystem , $path);
+                $this->scanFileSystem($prefix.'/'.$path, $filesystem);
             } else {
 
                 echo '================================================================' . PHP_EOL;
@@ -148,11 +147,11 @@ class Scanner
                 $lexer = $this->parser->getLexer();
 
                 array_walk($visitors, function (NodeVisitor $visitor) use ($lexer, $tree) {
-                    /*
+
                     if (method_exists($visitor, 'setTokens')) {
                         $visitor->setTokens($lexer->getTokens());
                     }
-                    */
+
                     if (method_exists($visitor, 'setTree')) {
                         $visitor->setTree($tree);
                     }
