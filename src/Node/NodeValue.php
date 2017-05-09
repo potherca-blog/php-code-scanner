@@ -6,7 +6,7 @@ use PhpParser\Node;
 use Potherca\Scanner\Exception\NotYetImplementedException;
 use Potherca\Scanner\Identity;
 
-trait NodeValueTrait
+class NodeValue
 {
     /**
      * @param \stdClass|resource|Node|array|string|int|bool|null $subject
@@ -29,69 +29,6 @@ trait NodeValueTrait
         }
 
         return $value;
-    }
-
-    /** @noinspection MoreThanThreeArgumentsInspection
-     *
-     * @param Node $node
-     * @param string|Identity $type
-     *
-     * @TODO: Replace with Monolog + Add 'DEBUG' status
-     */
-    final public function log(Node $node, $type)
-    {
-        if ($node instanceof Node\Stmt\Nop === false && $type !== ' ') {
-
-            // @NOTE: Uncomment the $indicator and $status to get more output
-            // $indicator = '      ';
-            // $status = '';
-            $messageFormat = ' %s [%s:%s] %s %s = "%s"';
-
-            if($type instanceof Identity) {
-                if ($type->hasIdentity(Identity\IdentityType::UNKNOWN) === false) {
-                    $identities = $type->getIdentities();
-
-                    $indicator = '----->';
-                    $status = implode(', ', $identities);
-                }
-            }elseif (
-                $node instanceof Node\Stmt\Namespace_
-                || $node instanceof Node\Stmt\Class_
-                || $node instanceof Node\Stmt\ClassMethod
-                || $node instanceof Node\Stmt\Function_
-            ) {
-                switch ($type) {
-                    case '<':
-                        $status = 'Leaving';
-                        $indicator = '<=====';
-                        break;
-                    case '>':
-                        $status = 'Entering';
-                        $indicator = '=====>';
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-
-            if (isset($status, $indicator)) {
-                try {
-                    $value = $this->getValue($node);
-                } catch (NotYetImplementedException $exception) {
-                    $value = $exception->getMessage();
-                }
-                $messageContent = [
-                    $indicator,
-                    $node->getAttribute('startLine'),
-                    $node->getAttribute('endLine'),
-                    $status,
-                    $node->getType(),
-                    $value,
-                ];
-                vprintf($messageFormat.PHP_EOL, $messageContent);
-            }
-        }
     }
 
     ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -235,7 +172,8 @@ trait NodeValueTrait
             if (is_string($var)) {
                 $value .= sprintf('$%s', $var);
             } else {
-                $value .= sprintf('$%s', $var->name);
+                // $value .= sprintf('$%s', $var->name);
+                $value .= $this->getValue($var, $value);
             }
 
             if (
@@ -333,6 +271,7 @@ trait NodeValueTrait
             || $node instanceof Node\Stmt\Return_
             || $node instanceof Node\Stmt\If_
             || $node instanceof Node\Expr\Isset_
+            || $node instanceof Node\Stmt\ElseIf_
         ) {
             // Ignore
         } else {

@@ -10,6 +10,7 @@ use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use Potherca\Scanner\Identifier\IdentifierInterface;
 use Potherca\Scanner\Identifier\IdentifierOption;
+use Potherca\Scanner\Node\NodeValue;
 
 class ScannerFactory
 {
@@ -54,9 +55,10 @@ class ScannerFactory
         /* Create simple classes (do not require other objects) */
         $parserFactory = new ParserFactory();
         $lexer = new Lexer($lexerOptions);
-        $identifier = $this->createIdentifier($options);
+        $nodeValue = new NodeValue();
 
         /* Create more complex classes (require other objects) */
+        $identifier = $this->createIdentifier($options, $nodeValue);
         $filesystems = $this->createFilesystems($directories);
         $parser = $this->createParser($parserFactory, $lexer);
         $visitor = new Visitor($identifier);
@@ -84,7 +86,7 @@ class ScannerFactory
         return $filesystems;
     }
 
-    private function createIdentifier($options)
+    private function createIdentifier($options, NodeValue $nodeValue)
     {
         $arguments = $this->arguments;
 
@@ -103,15 +105,15 @@ class ScannerFactory
 
         $identifiers = [];
 
-        array_walk($classes, function ($className) use (&$identifiers, $options) {
+        array_walk($classes, function ($className) use (&$identifiers, $options, $nodeValue) {
             if (is_subclass_of($className, IdentifierInterface::class) === true) {
-                $identifiers[] = new $className($options);
+                $identifiers[] = new $className($options, $nodeValue);
             }
         });
 
         $options[IdentifierOption::IDENTIFIERS] = $identifiers;
 
-        return new Identifier($options);
+        return new Identifier($options, $nodeValue);
     }
 
     private function createParser(ParserFactory $parserFactory, Lexer $lexer)

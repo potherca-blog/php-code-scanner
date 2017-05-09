@@ -5,13 +5,14 @@ namespace Potherca\Scanner\Identifier;
 use PhpParser\Node;
 use Potherca\Scanner\Exception\NotYetImplementedException;
 use Potherca\Scanner\Identity;
-use Potherca\Scanner\Node\NodeValueTrait;
+use Potherca\Scanner\Node\NodeValue;
 use Potherca\Scanner\Node\NodeType;
 
 class VariablesIdentifier implements IdentifierInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    use NodeValueTrait;
+    /** @var NodeValue */
+    private $nodeValue;
 
     private static $internalVariables = [
         '$_COOKIE',
@@ -35,8 +36,9 @@ class VariablesIdentifier implements IdentifierInterface
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    public function __construct(array $options)
+    final public function __construct(array $options, NodeValue $nodeValue)
     {
+        $this->nodeValue = $nodeValue;
         // Nothing to do with options
     }
 
@@ -58,6 +60,11 @@ class VariablesIdentifier implements IdentifierInterface
         }
 
         return new Identity([$identity], $value);
+    }
+
+    final public function getValue($subject)
+    {
+        return $this->nodeValue->getValue($subject);
     }
 }
 

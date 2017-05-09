@@ -6,41 +6,51 @@ use PhpParser\Node;
 use Potherca\Scanner\Identifier\IdentifierInterface;
 use Potherca\Scanner\Identifier\IdentifierOption;
 use Potherca\Scanner\Identity\IdentityType;
-use Potherca\Scanner\Node\NodeValueTrait;
+use Potherca\Scanner\Node\NodeValue;
 
 class Identifier implements IdentifierInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    use NodeValueTrait;
-
+    /** @var NodeValue */
+    private $nodeValue;
     /** @var array */
     private $options;
+    /** @var string[] */
+    private $supportedNodeTypes;
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     public function getSupportedNodeTypes()
     {
-        $supportedNodeTypes = [];
+        if ($this->supportedNodeTypes === null) {
 
-        $identifiers = $this->options[IdentifierOption::IDENTIFIERS];
+            $supportedNodeTypes = [];
 
-        array_walk($identifiers, function (IdentifierInterface $identifier) use (&$supportedNodeTypes) {
-            $currentIdentifiers = $identifier->getSupportedNodeTypes();
-            $supportedNodeTypes = array_merge($supportedNodeTypes, $currentIdentifiers);
-        });
+            $identifiers = $this->options[IdentifierOption::IDENTIFIERS];
 
-        return $supportedNodeTypes;
+            array_walk($identifiers, function (IdentifierInterface $identifier) use (&$supportedNodeTypes) {
+                $currentIdentifiers = $identifier->getSupportedNodeTypes();
+                $supportedNodeTypes = array_merge($supportedNodeTypes, $currentIdentifiers);
+            });
+
+            $this->supportedNodeTypes = array_unique($supportedNodeTypes);
+        }
+
+        return $this->supportedNodeTypes;
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-    final public function __construct(array $options)
+    final public function __construct(array $options, NodeValue $nodeValue)
     {
+        $this->nodeValue = $nodeValue;
         $this->options = $options;
     }
 
     final public function identify(Node $node)
     {
         $identities = [];
+
+        // $supportedNodeTypes = $this->getSupportedNodeTypes();
 
         $identifiers = $this->options[IdentifierOption::IDENTIFIERS];
 
@@ -59,6 +69,11 @@ class Identifier implements IdentifierInterface
         $value = $this->getValue($node);
 
         return new Identity($identities, $value);
+    }
+
+    final public function getValue($subject)
+    {
+        return $this->nodeValue->getValue($subject);
     }
 }
 

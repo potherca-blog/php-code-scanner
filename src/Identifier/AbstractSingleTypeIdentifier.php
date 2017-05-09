@@ -4,13 +4,13 @@ namespace Potherca\Scanner\Identifier;
 
 use PhpParser\Node;
 use Potherca\Scanner\Identity;
-use Potherca\Scanner\Node\NodeValueTrait;
+use Potherca\Scanner\Node\NodeValue;
 
 abstract class AbstractSingleTypeIdentifier implements IdentifierInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    use NodeValueTrait;
-
+    /** @var NodeValue */
+    private $nodeValue;
     /** @var array */
     private $options;
 
@@ -25,8 +25,9 @@ abstract class AbstractSingleTypeIdentifier implements IdentifierInterface
         return $this->options;
     }
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    public function __construct(array $options)
+    final public function __construct(array $options, NodeValue $nodeValue)
     {
+        $this->nodeValue = $nodeValue;
         $this->options = $options;
     }
 
@@ -75,6 +76,11 @@ abstract class AbstractSingleTypeIdentifier implements IdentifierInterface
     final public function supportsNodeType($tokenType)
     {
         return in_array($tokenType, $this->getSupportedNodeTypes(), true);
+    }
+
+    final public function getValue($subject)
+    {
+        return $this->nodeValue->getValue($subject);
     }
 
     ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
