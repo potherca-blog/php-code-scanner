@@ -4,16 +4,16 @@ namespace Potherca\Scanner;
 
 use PhpParser\Node;
 use PhpParser\NodeTraverserInterface;
-use PhpParser\NodeVisitor;
+use PhpParser\NodeVisitor as NodeVisitorInterface;
 
 class Traverser implements NodeTraverserInterface
 {
     /** @var NodeTraverserInterface */
     private $traverser;
-    /** @var NodeVisitor[] */
-    private $visitors = [];
+    /** @var NodeVisitorInterface[] */
+    private $visitors;
 
-    /** @return NodeVisitor[] */
+    /** @return NodeVisitorInterface[] */
     final public function getVisitors()
     {
         return $this->visitors;
@@ -21,7 +21,7 @@ class Traverser implements NodeTraverserInterface
 
     /**
      * @param NodeTraverserInterface $traverser
-     * @param NodeVisitor[] $visitors
+     * @param NodeVisitorInterface[] $visitors
      */
     final public function __construct(NodeTraverserInterface $traverser, array $visitors)
     {
@@ -42,7 +42,7 @@ class Traverser implements NodeTraverserInterface
         $traverser = $this->traverser;
         $visitors = $this->visitors;
 
-        array_walk($visitors, function (NodeVisitor $visitor) use (&$traverser) {
+        array_walk($visitors, function (NodeVisitorInterface $visitor) use (&$traverser) {
             $traverser->addVisitor($visitor);
         });
 
@@ -50,7 +50,7 @@ class Traverser implements NodeTraverserInterface
 
         $identities = [];
 
-        array_walk($visitors, function (NodeVisitor $visitor) use (&$identities) {
+        array_walk($visitors, function (NodeVisitorInterface $visitor) use (&$identities) {
             if ($visitor instanceof Visitor) {
                 $currentIdentities = $visitor->getIdentities();
                 array_merge($identities, $currentIdentities);
@@ -63,9 +63,9 @@ class Traverser implements NodeTraverserInterface
     /**
      * Adds a visitor.
      *
-     * @param NodeVisitor $visitor Visitor to add
+     * @param NodeVisitorInterface $visitor Visitor to add
      */
-    public function addVisitor(NodeVisitor $visitor)
+    public function addVisitor(NodeVisitorInterface $visitor)
     {
         // @TODO: Implement addVisitor() method.
     }
@@ -73,9 +73,9 @@ class Traverser implements NodeTraverserInterface
     /**
      * Removes an added visitor.
      *
-     * @param NodeVisitor $visitor
+     * @param NodeVisitorInterface $visitor
      */
-    public function removeVisitor(NodeVisitor $visitor)
+    public function removeVisitor(NodeVisitorInterface $visitor)
     {
         // @TODO: Implement removeVisitor() method.
     }
