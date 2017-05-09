@@ -4,7 +4,6 @@ namespace Potherca\Scanner\Visitor;
 
 use PhpParser\Node;
 use Potherca\Scanner\Exception\RuntimeException;
-use Potherca\Scanner\Identifier;
 use Potherca\Scanner\Identity;
 
 interface VisitorInterface
