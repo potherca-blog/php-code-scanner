@@ -64,11 +64,11 @@ class Scanner
 
             /** @var Local $adapter */
             $adapter = $filesystem->getAdapter();
-            $prefix = $adapter->getPathPrefix();
+            $pathPrefix = $adapter->getPathPrefix();
             echo '================================================================' . PHP_EOL;
-            vprintf(' =====> Entering folder "%s"%s', [$prefix, PHP_EOL]);
+            vprintf(' =====> Entering folder "%s"%s', [$pathPrefix, PHP_EOL]);
 
-            $this->scanFileSystem($prefix, $filesystem);
+            $this->scanFileSystem($filesystem);
 
             echo '----------------------------------------------------------------' . PHP_EOL;
             echo ' <==== Leaving folder'.PHP_EOL;
@@ -80,13 +80,14 @@ class Scanner
 
     /**
      * @param Filesystem $filesystem
-     * @param string $folder
      *
      * @return array
      */
-    private function listFiles(Filesystem $filesystem, $folder = '/')
+    private function listFiles(Filesystem $filesystem)
     {
-        $files = $filesystem->listContents($folder, true);
+        $path = '/';
+
+        $files = $filesystem->listContents($path, true);
 
         $whitelist = $this->whitelist;
 
@@ -118,23 +119,20 @@ class Scanner
     }
 
     /**
-     * @param $prefix
      * @param Filesystem $filesystem
      *
      * @throws \League\Flysystem\FileNotFoundException
      * @throws ParserException
      */
-    private function scanFileSystem($prefix, Filesystem $filesystem)
+    private function scanFileSystem(Filesystem $filesystem)
     {
         $files = $this->listFiles($filesystem);
 
         foreach ($files as $file) {
             $path = $file['path'];
 
-            if ($file['type'] === 'dir') {
-                $this->scanFileSystem($prefix.'/'.$path, $filesystem);
-            } else {
-
+            if ($file['type'] === 'file') {
+                // @NOTE: Directories can be ignore as `listFile()` is recursive
                 echo '================================================================' . PHP_EOL;
                 vprintf(' =====> Entering file "%s"%s', [$path, PHP_EOL]);
                 // @TODO: Only parse (valid) php files
@@ -182,7 +180,7 @@ class Scanner
                  * To avoid segfaults and in order to run atomic/re-use results,
                  * findings (parsing results) should be written to file(s).
                  */
-                $this->result[$prefix][$path] = $identities;
+                $this->result[$path] = $identities;
 
                 echo '----------------------------------------------------------------' . PHP_EOL;
                 echo ' <==== Leaving file' . PHP_EOL;
