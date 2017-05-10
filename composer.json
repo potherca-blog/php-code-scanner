@@ -18,7 +18,10 @@
     "autoload": {
         "psr-4": {
             "Potherca\\Scanner\\": "src/"
-        }
+        },
+        "files": [
+            "src/Exceptions.php"
+        ]
     },
     "bin": [
         "bin/php-scanner"
