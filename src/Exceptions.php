@@ -18,4 +18,6 @@ class ParserException extends RuntimeException {
     const MYSQL_PARSE_ERROR = 2;
 }
 
+class UnexpectedValueException extends RuntimeException {}
+
 /*EOF*/
