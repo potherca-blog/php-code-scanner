@@ -11,6 +11,8 @@ interface VisitorInterface
     /** @return Identity */
     public function getIdentities();
 
+    /** string[] */
+    public function getSupportedIdentities();
     /**
      * @param array $nodes
      * @param Node $node
@@ -21,7 +23,12 @@ interface VisitorInterface
      */
     public function visit(array $nodes, Node $node);
 
+    /**
+     * @param Node $node
+     * @param Identity $identity
+     */
     public function storeIdentity(Node $node, Identity $identity);
+
 }
 
 /*EOF*/
