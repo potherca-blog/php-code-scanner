@@ -3,27 +3,44 @@
 namespace Potherca\Scanner;
 
 use PhpParser\Node;
-use PhpParser\NodeVisitor;
+use PhpParser\NodeVisitor as NodeVisitorInterface;
 use Potherca\Scanner\Exception\NotYetImplementedException;
 use Potherca\Scanner\Exception\RuntimeException;
-use Potherca\Scanner\Node\NodeValueTrait;
 use Potherca\Scanner\Visitor\VisitorInterface;
 
-class Visitor implements VisitorInterface, NodeVisitor
+class Visitor implements VisitorInterface, NodeVisitorInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    use NodeValueTrait;
+    //@FIXME: Place "location" properties (file, namespace, class, function) in separate Object
+    /** @var string */
+    private $filename;
+    /** @var string */
+    private $namespace = '';
+    /** @var string */
+    private $class = '';
+    /** @var string */
+    private $function = '';
 
-    /** @var */
-    private $tree = [];
+    /** @var Identity[] */
+    private $identities = [];
     /** @var Identifier */
     private $identifier;
+    /** @var array*/
+    private $tree = [];
+    /** @var array */
+    private $supportedNodeTypes = [];
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     /** @param mixed $tree */
     final public function setTree(array $tree)
     {
         $this->tree = $tree;
+    }
+
+    /** @param string $filename */
+    final public function setFilename($filename)
+    {
+        $this->filename = (string) $filename;
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -49,7 +66,7 @@ class Visitor implements VisitorInterface, NodeVisitor
      *
      * @return null|Node[] Array of nodes
      */
-    public function afterTraverse(array $nodes)
+    final public function afterTraverse(array $nodes)
     {
         return null;
     }
@@ -65,8 +82,12 @@ class Visitor implements VisitorInterface, NodeVisitor
      *
      * @return null|Node[] Array of nodes
      */
-    public function beforeTraverse(array $nodes)
+    final public function beforeTraverse(array $nodes)
     {
+        $this->reset();
+
+        $this->supportedNodeTypes = $this->identifier->getSupportedNodeTypes();
+
         return null;
     }
 
@@ -87,9 +108,20 @@ class Visitor implements VisitorInterface, NodeVisitor
      *
      * @return null|int|Node Node
      */
-    public function enterNode(Node $node)
+    final public function enterNode(Node $node)
     {
-        $this->log($node, '>');
+        if (
+            $node instanceof Node\Stmt\Namespace_
+            || $node instanceof Node\Stmt\Class_
+            || $node instanceof Node\Stmt\ClassMethod
+            || $node instanceof Node\Stmt\Function_
+        ) {
+            $this->log($node, '>');
+
+            $propertyName = $this->getPropertyNameForNode($node);
+
+            $this->{$propertyName} = (string) $node->name;
+        }
 
         return null;
     }
@@ -115,11 +147,28 @@ class Visitor implements VisitorInterface, NodeVisitor
      *
      * @throws RuntimeException
      */
-    public function leaveNode(Node $node)
+    final public function leaveNode(Node $node)
     {
-        $this->log($node, '<');
+        if (
+            $node instanceof Node\Stmt\Namespace_
+            || $node instanceof Node\Stmt\Class_
+            || $node instanceof Node\Stmt\ClassMethod
+            || $node instanceof Node\Stmt\Function_
+        ) {
+                $this->log($node, '<');
+        }
 
         $this->visit($this->tree, $node);
+
+        if (
+            $node instanceof Node\Stmt\Namespace_
+            || $node instanceof Node\Stmt\Class_
+            || $node instanceof Node\Stmt\ClassMethod
+            || $node instanceof Node\Stmt\Function_
+        ) {
+            $propertyName = $this->getPropertyNameForNode($node);
+            $this->{$propertyName} = '';
+        }
 
         return null;
     }
@@ -127,43 +176,141 @@ class Visitor implements VisitorInterface, NodeVisitor
     /* Methods of the Potherca\Scanner\Visitor\VisitorInterface. */
     final public function getIdentities()
     {
-        return [new NotYetImplementedException('// @FIXME: Retrieve identified nodes from **somewhere**')];
+        return $this->identifier->getSupportedIdentities();
     }
     /**
      * @param Node $node
-     * @param Identity $identities
+     * @param Identity $identity
      */
-    final public function storeIdentity(Node $node, Identity $identities)
+    final public function storeIdentity(Node $node, Identity $identity)
     {
-        //
-        // @FIXME: Store $identity **SOMEWHERE**
+        $this->identities[] = $identity;
     }
 
     final public function visit(array $nodes, Node $node)
     {
-        $identity = $this->identifier->identify($node);
-
-        /*
-            $parser = new PHPSQLParser();
-            $parsed = $parser->parse($sql, true);
-            print_r($parsed);
-        */
         if (
-            $node instanceof Node\Stmt\Namespace_
-            || $node instanceof Node\Stmt\Class_
-            || $node instanceof Node\Stmt\ClassMethod
-            || $node instanceof Node\Stmt\Function_
+            in_array($node->getType(), $this->supportedNodeTypes, true) === true
+            || in_array(get_class($node), $this->supportedNodeTypes, true) === true
         ) {
-            $type = '>';
-            $this->log($node, $type);
+            $properties = [
+                'class' => $this->class,
+                'file' => $this->filename,
+                'function' => $this->function,
+                'namespace' => $this->namespace,
+            ];
+
+            $identity = $this->identifier->identify($node, $properties);
+
+            /*
+                $parser = new PHPSQLParser();
+                $parsed = $parser->parse($sql, true);
+                print_r($parsed);
+            */
+            if ($identity->hasIdentity(Identity\IdentityType::UNKNOWN) === false) {
+                $this->log($node, $identity);
+                $this->storeIdentity($node, $identity);
+            }
         }
 
-        if ($identity->hasIdentity(Identity\IdentityType::UNKNOWN) === false) {
-            $type = $identity;
-            $this->log($node, $type);
-        }
+    }
 
-        $this->storeIdentity($node, $identity);
+    ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /** @noinspection MoreThanThreeArgumentsInspection
+     *
+     * @param Node $node
+     * @param string|Identity $type
+     *
+     * @TODO: Replace with Monolog + Add 'DEBUG' status
+     */
+    private function log(Node $node, $type)
+    {
+        if ($node instanceof Node\Stmt\Nop === false && $type !== ' ') {
+
+            // @NOTE: Uncomment the $indicator and $status to get more output
+            // $indicator = '      ';
+            // $status = '';
+            $messageFormat = ' %s [%s:%s] %s %s = "%s"';
+
+            if($type instanceof Identity) {
+                $identities = $type->getIdentity();
+
+                $hasUnknownIdentity = $type->hasIdentity(Identity\IdentityType::UNKNOWN);
+                if ($hasUnknownIdentity === false) {
+                    $indicator = '----->';
+                    $status = implode(', ', $identities);
+                }
+            }elseif (
+                $node instanceof Node\Stmt\Namespace_
+                || $node instanceof Node\Stmt\Class_
+                || $node instanceof Node\Stmt\ClassMethod
+                || $node instanceof Node\Stmt\Function_
+            ) {
+                switch ($type) {
+                    case '<':
+                        $status = 'Leaving';
+                        $indicator = '<=====';
+                        break;
+                    case '>':
+                        $status = 'Entering';
+                        $indicator = '=====>';
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            if (isset($status, $indicator)) {
+                try {
+                    $value = $this->identifier->getValue($node);
+                } catch (NotYetImplementedException $exception) {
+                    $value = $exception->getMessage();
+                }
+
+                $messageContent = [
+                    $indicator,
+                    $node->getAttribute('startLine'),
+                    $node->getAttribute('endLine'),
+                    $status,
+                    $node->getType(),
+                    $value,
+                ];
+
+                vprintf($messageFormat.PHP_EOL, $messageContent);
+            }
+        }
+    }
+
+    private function reset()
+    {
+        $this->class = '';
+        $this->function = '';
+        $this->identities = [];
+        $this->namespace = '';
+        $this->tree = [];
+        // $this->filename = '';
+
+    }
+
+    /**
+     * @param Node $node
+     *
+     * @return string
+     */
+    private function getPropertyNameForNode(Node $node)
+    {
+        $propertyMap = [
+            Node\Stmt\Namespace_::class => 'namespace',
+            Node\Stmt\Class_::class => 'class',
+            Node\Stmt\ClassMethod::class => 'function',
+            Node\Stmt\Function_::class => 'function',
+
+        ];
+
+        $className = get_class($node);
+
+        return $propertyMap[$className];
     }
 }
 
