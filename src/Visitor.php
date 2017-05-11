@@ -49,8 +49,8 @@ class Visitor implements VisitorInterface, NodeVisitorInterface
         $this->identifier = $identifier;
     }
 
-    /* Methods of the PhpParser\NodeVisitor interface.
-     *
+    /////////////////////////// PhpParser\NodeVisitor \\\\\\\\\\\\\\\\\\\\\\\\\\
+    /*
      * All four methods can either return the changed node or not return at all
      * (i.e. null) in which case the current node is not changed.
      */
@@ -173,11 +173,20 @@ class Visitor implements VisitorInterface, NodeVisitorInterface
         return null;
     }
 
-    /* Methods of the Potherca\Scanner\Visitor\VisitorInterface. */
+    ////////////////////////////// VisitorInterface \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     final public function getIdentities()
+    {
+        return $this->identities;
+    }
+
+    /**
+     * @return array
+     */
+    final public function getSupportedIdentities()
     {
         return $this->identifier->getSupportedIdentities();
     }
+
     /**
      * @param Node $node
      * @param Identity $identity
