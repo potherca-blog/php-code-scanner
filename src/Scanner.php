@@ -87,7 +87,7 @@ class Scanner
 
         array_walk($visitors, function (NodeVisitorInterface $visitor) use (&$identities) {
             if ($visitor instanceof VisitorInterface) {
-                $currentIdentities = $visitor->getIdentities();
+                $currentIdentities = $visitor->getSupportedIdentities();
                 $identities = array_merge($identities, $currentIdentities);
             }
         });
