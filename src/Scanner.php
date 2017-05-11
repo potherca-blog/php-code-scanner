@@ -4,8 +4,9 @@ namespace Potherca\Scanner;
 
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
-use PhpParser\NodeVisitor;
+use PhpParser\NodeVisitor as NodeVisitorInterface;
 use Potherca\Scanner\Exception\ParserException;
+use Potherca\Scanner\Visitor\VisitorInterface;
 
 class Scanner
 {
@@ -78,6 +79,22 @@ class Scanner
         echo 'Done.'.PHP_EOL;
     }
 
+    final public function listIdentities()
+    {
+        $identities = [];
+
+        $visitors = $this->traverser->getVisitors();
+
+        array_walk($visitors, function (NodeVisitorInterface $visitor) use (&$identities) {
+            if ($visitor instanceof VisitorInterface) {
+                $currentIdentities = $visitor->getIdentities();
+                $identities = array_merge($identities, $currentIdentities);
+            }
+        });
+
+        return $identities;
+    }
+
     /**
      * @param Filesystem $filesystem
      *
@@ -131,11 +148,11 @@ class Scanner
         foreach ($files as $file) {
             $path = $file['path'];
 
-            if ($file['type'] === 'file') {
+            if ($file['type'] === 'file'/* @TODO: && $file['extension'] === 'php'*/) {
                 // @NOTE: Directories can be ignore as `listFile()` is recursive
                 echo '================================================================' . PHP_EOL;
                 vprintf(' =====> Entering file "%s"%s', [$path, PHP_EOL]);
-                // @TODO: Only parse (valid) php files
+
                 $content = $filesystem->read($path);
 
                 $tree = $this->parser->parse($content);
@@ -144,20 +161,13 @@ class Scanner
 
                 $lexer = $this->parser->getLexer();
 
-                array_walk($visitors, function (NodeVisitor $visitor) use ($lexer, $tree) {
-
-                    if (method_exists($visitor, 'setTokens')) {
-                        $visitor->setTokens($lexer->getTokens());
-                    }
-
-                    if (method_exists($visitor, 'setTree')) {
-                        $visitor->setTree($tree);
-                    }
-                });
+                $this->callMethodOnVisitors($visitors, 'setFileName', [$path]);
+                $this->callMethodOnVisitors($visitors, 'setTokens', [$lexer->getTokens()]);
+                $this->callMethodOnVisitors($visitors, 'setTree', [$tree]);
 
                 $identities = $this->traverser->traverse($tree);
 
-                /* @FIXME: Having `$this->result[$prefix][$path]` doesn't work as we want to list all declarations and usages, not just per file/folder
+                /* @FIXME: Having `$this->result[$path]` doesn't work as we want to list all declarations and usages, not just per file/folder
                  *
                  * The only real solution is to have a full lists of all declared
                  * classes and functions and a list of all of the usages and
@@ -180,13 +190,27 @@ class Scanner
                  * To avoid segfaults and in order to run atomic/re-use results,
                  * findings (parsing results) should be written to file(s).
                  */
-                $this->result[$path] = $identities;
+                $this->result[] = $identities;
 
                 echo '----------------------------------------------------------------' . PHP_EOL;
                 echo ' <==== Leaving file' . PHP_EOL;
                 echo "================================================================\n\n";
             }
         }
+    }
+
+    /**
+     * @param NodeVisitorInterface[] $visitors
+     * @param string $methodName
+     * @param array $parameters
+     */
+    private function callMethodOnVisitors(array $visitors, $methodName, array $parameters)
+    {
+        array_walk($visitors, function (NodeVisitorInterface $visitor) use ($methodName, $parameters) {
+            if (method_exists($visitor, $methodName)) {
+                $visitor->{$methodName}(...$parameters);
+            }
+        });
     }
 }
 
