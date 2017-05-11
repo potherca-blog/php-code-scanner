@@ -116,8 +116,7 @@ class Arguments implements ArgumentInterface
             $this->loadBlackList($arguments);
 
             /*/ Identifiers /*/
-            $this->loadIdentifiers(IdentifierOption::INTERNAL_IDENTIFIERS, $arguments);
-            $this->loadIdentifiers(IdentifierOption::IDENTIFIERS, $arguments);
+            $this->loadIdentifiers();
         }
     }
 
@@ -126,13 +125,20 @@ class Arguments implements ArgumentInterface
         return $this->errorCode === 0;
     }
 
+    final public function loadIdentifiers()
+    {
+        $this->loadSpecificIdentifiers(IdentifierOption::INTERNAL_IDENTIFIERS);
+        $this->loadSpecificIdentifiers(IdentifierOption::IDENTIFIERS);
+    }
+
     ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
-     * @param $key
-     * @param $arguments
+     * @param string $key
      */
-    private function loadIdentifiers($key, $arguments)
+    private function loadSpecificIdentifiers($key)
     {
+        $arguments = $this->arguments;
+
         if ($this->isValid() === true) {
             if (array_key_exists($key, $arguments)) {
                 $identifiers = $arguments[$key];
@@ -170,7 +176,8 @@ class Arguments implements ArgumentInterface
      */
     private function loadDirectories($arguments)
     {
-        if ($this->isValid() === true) {
+        if ($this->isValid() === true && array_key_exists('subject', $arguments)) {
+
             $subjects = $arguments['subject'];
 
             if (is_array($subjects) === false) {

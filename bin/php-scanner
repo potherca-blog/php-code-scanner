@@ -8,16 +8,12 @@ use Potherca\Scanner\Identifier\IdentifierOption;
 use Potherca\Scanner\Identifier\InternalFunctionsIdentifier;
 use Symfony\Component\Finder\Finder;
 
-require_once dirname(__DIR__) . '/vendor/autoload.php';
+require_once dirname(__DIR__).'/src/bootstrap.php';
 
-// @TODO: Add a progress bar
+// @TODO: Add a progress bar?
 
-/*/ Default values /*/
-$output = [
-    'exit-code' => CommandLineInterface\Command::EXIT_UNKNOWN_ERROR,
-    'message' => 'An unknown error occurred',
-    'stream' => STDERR,
-];
+$nestingLevel = 100000;
+ini_set('xdebug.max_nesting_level', $nestingLevel);
 
 $defaultArguments = [
     IdentifierOption::PHP_VERSION => InternalFunctionsIdentifier::VERSION_56,
@@ -26,41 +22,18 @@ $defaultArguments = [
 
 /*/ Create Objects /*/
 $finder = new Finder();
-$command = new CommandLineInterface\Command(basename(__FILE__));
+$command = new CommandLineInterface\Command(basename(__FILE__), $argv);
 
 /*/ Build arguments /*/
-$rawArguments = getopt($command->getShortOptions(), $command->getLongOptions());
-$rawArguments = array_merge($defaultArguments, $rawArguments);
-$arguments = new CommandLineInterface\Arguments($rawArguments, $finder);
+$optArguments = getopt($command->getShortOptions(), $command->getLongOptions());
+$optArguments = array_merge($defaultArguments, $optArguments);
 
-$argumentsAreValid = $command->parseArguments($arguments);
+$arguments = new CommandLineInterface\Arguments($optArguments, $finder);
 
-if ($arguments->isHelp() === true) {
-    $output['exit-code'] = $command->getExitCode();
-    $output['message'] = $command->getFullUsage();
-    $output['stream'] = STDOUT;
-} elseif ($argumentsAreValid === false) {
-    $output['exit-code'] = $command->getExitCode();
-    $output['message'] = $command->getErrorMessage().PHP_EOL.$command->getShortUsage();
-} else {
-
-    $nestingLevel = 100000;
-    ini_set('xdebug.max_nesting_level', $nestingLevel);
-
-    $factory = new ScannerFactory($arguments);
-
-    $scanner = $factory->create();
-
-    $scanner->scan();
-
-    $results = $scanner->getResult();
-
-    $output['exit-code'] = $command->getExitCode();
-    $output['message'] = $command->convertToJson($results);
-    $output['stream'] = STDOUT;
-}
+$output = $command->call($arguments);
 
 fwrite($output['stream'], $output['message'].PHP_EOL);
+
 exit($output['exit-code']);
 
 /*EOF*/
