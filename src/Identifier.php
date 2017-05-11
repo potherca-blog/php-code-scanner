@@ -5,12 +5,15 @@ namespace Potherca\Scanner;
 use PhpParser\Node;
 use Potherca\Scanner\Identifier\IdentifierInterface;
 use Potherca\Scanner\Identifier\IdentifierOption;
+use Potherca\Scanner\Identifier\SupportsNodeTypeTrait;
 use Potherca\Scanner\Identity\IdentityType;
 use Potherca\Scanner\Node\NodeValue;
 
 class Identifier implements IdentifierInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    use SupportsNodeTypeTrait;
+
     /** @var NodeValue */
     private $nodeValue;
     /** @var array */
@@ -19,6 +22,22 @@ class Identifier implements IdentifierInterface
     private $supportedNodeTypes;
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
+    public function getSupportedIdentities()
+    {
+        $identities = [];
+
+        $identifiers = $this->options[IdentifierOption::IDENTIFIERS];
+
+        array_walk($identifiers, function (IdentifierInterface $identifier) use (&$identities) {
+            $currentIdentities = $identifier->getSupportedIdentities();
+            $identities = array_merge($identities, $currentIdentities);
+        });
+
+        $identities = array_unique($identities);
+
+        return $identities;
+    }
+
     public function getSupportedNodeTypes()
     {
         if ($this->supportedNodeTypes === null) {
@@ -46,29 +65,41 @@ class Identifier implements IdentifierInterface
         $this->options = $options;
     }
 
-    final public function identify(Node $node)
+    final public function identify(Node $node, array $options = [])
     {
-        $identities = [];
-
-        // $supportedNodeTypes = $this->getSupportedNodeTypes();
+        $identity = [];
 
         $identifiers = $this->options[IdentifierOption::IDENTIFIERS];
 
-        array_walk($identifiers, function (IdentifierInterface $identifier) use ($node, &$identities) {
-            $currentIdentities = $identifier->identify($node);
-            $identities = array_merge($identities, $currentIdentities->getIdentities());
+        array_walk($identifiers, function (IdentifierInterface $identifier) use ($node, &$identity, $options) {
+
+            $nodeType = $node->getType();
+
+            $supportsNodeType = $this->supportsNodeType($nodeType);
+
+            if ($supportsNodeType === true) {
+                $currentIdentity = $identifier->identify($node, $options);
+                $identity = array_merge($identity, $currentIdentity->getIdentity());
+            }
         });
 
         // Remove empty values
-        $identities = array_filter($identities);
+        $identity = array_filter($identity);
 
-        if ($identities === []) {
-            $identities = [IdentityType::UNKNOWN];
+        if ($identity === []) {
+            $identity = [IdentityType::UNKNOWN];
         }
 
         $value = $this->getValue($node);
 
-        return new Identity($identities, $value);
+        return new Identity($node, [
+            'class' => $options['class'],
+            'file' => $options['file'],
+            'function' => $options['function'],
+            'identity' => $identity,
+            'namespace' => $options['namespace'],
+            'value' => $value,
+        ]);
     }
 
     final public function getValue($subject)
