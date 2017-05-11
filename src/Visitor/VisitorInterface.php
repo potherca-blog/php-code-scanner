@@ -21,7 +21,7 @@ interface VisitorInterface
      */
     public function visit(array $nodes, Node $node);
 
-    public function storeIdentity(Node $node, Identity $identities);
+    public function storeIdentity(Node $node, Identity $identity);
 }
 
 /*EOF*/
