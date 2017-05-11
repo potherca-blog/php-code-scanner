@@ -11,6 +11,8 @@ use Potherca\Scanner\Node\NodeType;
 class VariablesIdentifier implements IdentifierInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    use SupportsNodeTypeTrait;
+
     /** @var NodeValue */
     private $nodeValue;
 
@@ -28,6 +30,14 @@ class VariablesIdentifier implements IdentifierInterface
     ];
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+    final public function getSupportedIdentities()
+    {
+        return [
+            Identity\IdentityType::USAGE_INTERNAL_VARIABLE
+        ];
+    }
+
     final public function getSupportedNodeTypes()
     {
         return [
@@ -44,12 +54,11 @@ class VariablesIdentifier implements IdentifierInterface
 
     /**
      * @param Node $node The Node to identify
+     * @param array $options
      *
      * @return Identity
-     *
-     * @throws NotYetImplementedException
      */
-    public function identify(Node $node)
+    public function identify(Node $node, array $options = [])
     {
         $identity = Identity\IdentityType::NONE;
 
@@ -59,7 +68,14 @@ class VariablesIdentifier implements IdentifierInterface
             $identity = Identity\IdentityType::USAGE_INTERNAL_VARIABLE;
         }
 
-        return new Identity([$identity], $value);
+        return new Identity($node, [
+            'class' => $options['class'],
+            'file' => $options['file'],
+            'function' => $options['function'],
+            'identity' => [$identity],
+            'namespace' => $options['namespace'],
+            'value' => $value,
+        ]);
     }
 
     final public function getValue($subject)

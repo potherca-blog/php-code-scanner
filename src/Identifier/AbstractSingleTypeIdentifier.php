@@ -9,6 +9,8 @@ use Potherca\Scanner\Node\NodeValue;
 abstract class AbstractSingleTypeIdentifier implements IdentifierInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    use SupportsNodeTypeTrait;
+
     /** @var NodeValue */
     private $nodeValue;
     /** @var array */
@@ -24,6 +26,12 @@ abstract class AbstractSingleTypeIdentifier implements IdentifierInterface
     {
         return $this->options;
     }
+
+    final public function getSupportedIdentities()
+    {
+        return [$this->getIdentityType()];
+    }
+
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     final public function __construct(array $options, NodeValue $nodeValue)
     {
@@ -44,12 +52,11 @@ abstract class AbstractSingleTypeIdentifier implements IdentifierInterface
 
     /**
      * @param Node $node
+     * @param array $options
      *
      * @return Identity
-     *
-     * @throws \Potherca\Scanner\Exception\NotYetImplementedException
      */
-    final public function identify(Node $node)
+    final public function identify(Node $node, array $options = [])
     {
         $identification = Identity\IdentityType::NONE;
 
@@ -70,12 +77,14 @@ abstract class AbstractSingleTypeIdentifier implements IdentifierInterface
             }
         }
 
-        return new Identity([$identification], $value);
-    }
-
-    final public function supportsNodeType($tokenType)
-    {
-        return in_array($tokenType, $this->getSupportedNodeTypes(), true);
+        return new Identity($node, [
+            'class' => $options['class'],
+            'file' => $options['file'],
+            'function' => $options['function'],
+            'identity' => [$identification],
+            'namespace' => $options['namespace'],
+            'value' => $value,
+        ]);
     }
 
     final public function getValue($subject)
