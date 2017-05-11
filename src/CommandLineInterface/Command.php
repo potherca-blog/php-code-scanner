@@ -2,6 +2,7 @@
 
 namespace Potherca\Scanner\CommandLineInterface;
 
+use Potherca\Scanner\Identity;
 use Potherca\Scanner\ScannerFactory as Factory;
 
 class Command
@@ -152,7 +153,7 @@ class Command
         /*/ Default values /*/
         $command = self::MAIN_COMMAND;
 
-        $argumentsAreValid = false;
+        $argumentsAreValid = true;
 
         $output = [
             'exit-code' => self::EXIT_UNKNOWN_ERROR,
@@ -165,10 +166,10 @@ class Command
         if (isset($rawArguments[1]) && $rawArguments[1]{0} !== '-') {
             if ($rawArguments[1] === 'help') {
                 $command = self::HELP_COMMAND;
-                $argumentsAreValid = true;
             } elseif (array_key_exists($rawArguments[1], $this->commands) === true) {
                 $command = $rawArguments[1];
-                $argumentsAreValid = true;
+            } else {
+                $argumentsAreValid = false;
             }
         }
 
