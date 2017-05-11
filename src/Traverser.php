@@ -26,7 +26,6 @@ class Traverser implements NodeTraverserInterface
     final public function __construct(NodeTraverserInterface $traverser, array $visitors)
     {
         $this->traverser = $traverser;
-
         $this->visitors = $visitors;
     }
 
@@ -53,7 +52,7 @@ class Traverser implements NodeTraverserInterface
         array_walk($visitors, function (NodeVisitorInterface $visitor) use (&$identities) {
             if ($visitor instanceof Visitor) {
                 $currentIdentities = $visitor->getIdentities();
-                array_merge($identities, $currentIdentities);
+                $identities = array_merge($identities, $currentIdentities);
             }
         });
 
@@ -67,7 +66,7 @@ class Traverser implements NodeTraverserInterface
      */
     public function addVisitor(NodeVisitorInterface $visitor)
     {
-        // @TODO: Implement addVisitor() method.
+        $this->visitors[] = $visitor;
     }
 
     /**
@@ -77,7 +76,14 @@ class Traverser implements NodeTraverserInterface
      */
     public function removeVisitor(NodeVisitorInterface $visitor)
     {
-        // @TODO: Implement removeVisitor() method.
+        $found = false;
+
+        array_walk($this->visitors, function ($storedVisitor, $index) use (&$found, $visitor) {
+            if ($found === false && $storedVisitor === $visitor) {
+                unset($this->visitors[$index]);
+                $found = true;
+            }
+        });
     }
 }
 
