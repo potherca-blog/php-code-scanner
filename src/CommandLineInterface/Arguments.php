@@ -29,6 +29,8 @@ class Arguments implements ArgumentInterface
     private $identifiers = [];
     /** @var bool */
     private $isHelp = false;
+    /** @var bool */
+    private $isVerbose = false;
     /** @var int */
     private $phpVersion;
     /** @var array */
@@ -83,6 +85,12 @@ class Arguments implements ArgumentInterface
         return $this->isHelp;
     }
 
+    /** @return bool */
+    public function isVerbose()
+    {
+        return $this->isVerbose;
+    }
+
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     final public function __construct(array $arguments, Finder $finder)
     {
@@ -95,6 +103,8 @@ class Arguments implements ArgumentInterface
         $arguments = $this->arguments;
         // @TODO: Use Symfony Finder instead of hard-coded IO lookup
         $finder = $this->finder;
+
+        $this->isVerbose = array_key_exists('verbose', $arguments);
 
         if (array_key_exists('help', $arguments) === true) {
             $this->isHelp = true;

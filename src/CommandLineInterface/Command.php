@@ -31,13 +31,12 @@ class Command
         '[--help]' => 'Display this information',
         '[--identifier=<path-to-identifier>]' => 'Path to directory or file declaring custom identifiers. Does not recurse into directories',
         '[--ignore=<path-to-ignore>]' => 'Path to directory or file to exclude from scanning',
-
         // @TODO: '[--identity=<identity-to-scan-for>]' => 'Only output information for specified identities.'
         //                                               . 'Use "--list-identities" flag for all available identities',
         // @TODO: '[--source-directory=<path-to-source>]' => 'Path to directory or file to scan but not output information about',
         // @TODO: '[--list-php-versions]' => 'List valid PHP versions that can be scanned',
         // @TODO: '[--php-version=<php-version>]' => 'Specific PHP version to scan. Defaults to PHP5.6',
-        // @TODO: '[--verbose]' => 'Output more detailed information about what the scanner is doing',
+        '[--verbose]' => 'Output more detailed information about what the scanner is doing',
     ];
     /** @var array  */
     private $commands = [
@@ -78,6 +77,7 @@ class Command
             'help',
             'identifier::',
             'ignore::',
+            'verbose::',
         ];
     }
 
@@ -198,9 +198,16 @@ class Command
                     'stream' => STDOUT,
                 ];
             } catch (\Exception $exception) {
+
+                $message = $exception->getMessage();
+
+                if ($arguments->isVerbose()) {
+                    $message = $exception->__toString();
+                }
+
                 $output = [
                     'exit-code' => 65, // Generic error
-                    'message' => $exception->getMessage(),
+                    'message' => $message,
                     'stream' => STDERR,
                 ];
             }
