@@ -79,7 +79,7 @@ class ScannerFactory
         $filesystems = [];
 
         foreach ($directories as $directory) {
-            $adapter = new Local($directory);
+            $adapter = new Local($directory, LOCK_EX, Local::SKIP_LINKS);
             $filesystems[] = new Filesystem($adapter);
         }
 
