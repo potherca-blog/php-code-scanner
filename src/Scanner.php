@@ -152,51 +152,59 @@ class Scanner
             if ($this->shouldScanFile($file) === false) {
                 vprintf(' =====> Skipping file "%s"%s', [$path, PHP_EOL]);
             } else {
+
                 // @NOTE: Directories can be ignore as `listFile()` is recursive
+
                 vprintf(' =====> Entering file "%s"%s', [$path, PHP_EOL]);
 
                 $content = $filesystem->read($path);
 
-                $tree = $this->parser->parse($content);
+                $parseError = $this->validatePhp($content);
 
-                $visitors = $this->traverser->getVisitors();
+                if ($parseError !== '') {
+                    vprintf(' -----> %s%s', [$parseError, PHP_EOL]);
+                } else {
+                    $tree = $this->parser->parse($content);
 
-                $lexer = $this->parser->getLexer();
+                    $visitors = $this->traverser->getVisitors();
 
-                $this->callMethodOnVisitors($visitors, 'setFileName', [$path]);
-                $this->callMethodOnVisitors($visitors, 'setTokens', [$lexer->getTokens()]);
-                $this->callMethodOnVisitors($visitors, 'setTree', [$tree]);
+                    $lexer = $this->parser->getLexer();
 
-                $identities = $this->traverser->traverse($tree);
+                    $this->callMethodOnVisitors($visitors, 'setFileName', [$path]);
+                    $this->callMethodOnVisitors($visitors, 'setTokens', [$lexer->getTokens()]);
+                    $this->callMethodOnVisitors($visitors, 'setTree', [$tree]);
 
-                /* @FIXME: Having `$this->result[$path]` doesn't work as we want to list all declarations and usages, not just per file/folder
-                 *
-                 * The only real solution is to have a full lists of all declared
-                 * classes and functions and a list of all of the usages and
-                 * cross-reference those lists.
-                 *
-                 * 1. Do a first pass to get all declarations of functions and
-                 *    classes and class methods (variables? constants?)
-                 * 2. Do a second pass to get all usage of functions and classes
-                 *    and class methods (variables? constants?).
-                 * 3. Traverse the usage list against the declaration list
-                 *
-                 * In principle the first and second _could_ be done at the same
-                 * time, as long as "tokens" are used instead of trying to
-                 * resolve anything at that point.
-                 *
-                 * This would also resolve the problem with values hidden in
-                 * variables, as both the declaration of "$a" and the usage of
-                 * "$a" would be in the same scope.
-                 *
-                 * To avoid segfaults and in order to run atomic/re-use results,
-                 * findings (parsing results) should be written to file(s).
-                 */
-                $this->result[] = $identities;
+                    $identities = $this->traverser->traverse($tree);
 
-                echo '----------------------------------------------------------------' . PHP_EOL;
-                echo ' <==== Leaving file' . PHP_EOL;
-                echo "================================================================\n\n";
+                    /* @FIXME: Having `$this->result[$path]` doesn't work as we want to list all declarations and usages, not just per file/folder
+                     *
+                     * The only real solution is to have a full lists of all declared
+                     * classes and functions and a list of all of the usages and
+                     * cross-reference those lists.
+                     *
+                     * 1. Do a first pass to get all declarations of functions and
+                     *    classes and class methods (variables? constants?)
+                     * 2. Do a second pass to get all usage of functions and classes
+                     *    and class methods (variables? constants?).
+                     * 3. Traverse the usage list against the declaration list
+                     *
+                     * In principle the first and second _could_ be done at the same
+                     * time, as long as "tokens" are used instead of trying to
+                     * resolve anything at that point.
+                     *
+                     * This would also resolve the problem with values hidden in
+                     * variables, as both the declaration of "$a" and the usage of
+                     * "$a" would be in the same scope.
+                     *
+                     * To avoid segfaults and in order to run atomic/re-use results,
+                     * findings (parsing results) should be written to file(s).
+                     */
+                    $this->result[] = $identities;
+
+                    echo '----------------------------------------------------------------' . PHP_EOL;
+                    echo ' <==== Leaving file' . PHP_EOL;
+                    echo "================================================================\n\n";
+                }
             }
         }
     }
@@ -227,6 +235,22 @@ class Scanner
             && $file['type'] === 'file'
             && $file['extension'] === 'php'
         ;
+    }
+
+    private function validatePhp($content)
+    {
+        $error = '';
+
+        $content = escapeshellarg($content);
+        $command = sprintf('echo %s | php -l 2>&1', $content);
+        exec($command, $output, $exitCode);
+
+        if ($exitCode !== 0) {
+            $error = array_shift($output);
+            $error = str_replace('in - on line', 'on line', $error);
+        }
+
+        return $error;
     }
 }
 
