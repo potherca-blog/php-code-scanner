@@ -148,9 +148,11 @@ class Scanner
         foreach ($files as $file) {
             $path = $file['path'];
 
-            if ($file['type'] === 'file'/* @TODO: && $file['extension'] === 'php'*/) {
+            echo '================================================================' . PHP_EOL;
+            if ($this->shouldScanFile($file) === false) {
+                vprintf(' =====> Skipping file "%s"%s', [$path, PHP_EOL]);
+            } else {
                 // @NOTE: Directories can be ignore as `listFile()` is recursive
-                echo '================================================================' . PHP_EOL;
                 vprintf(' =====> Entering file "%s"%s', [$path, PHP_EOL]);
 
                 $content = $filesystem->read($path);
@@ -211,6 +213,20 @@ class Scanner
                 $visitor->{$methodName}(...$parameters);
             }
         });
+    }
+
+    /**
+     * @param array $file
+     *
+     * @return bool
+     */
+    private function shouldScanFile(array $file)
+    {
+        return array_key_exists('type', $file)
+            && array_key_exists('extension', $file)
+            && $file['type'] === 'file'
+            && $file['extension'] === 'php'
+        ;
     }
 }
 
