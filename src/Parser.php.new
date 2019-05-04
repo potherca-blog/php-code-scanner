@@ -1,0 +1,117 @@
+<?php
+
+namespace Potherca\Scanner;
+
+use Potherca\Scanner\Parser\TokenParser\TokenParserInterface;
+
+class Parser
+{
+    ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /** @var Logger */
+    private $logger;
+    /** @var Result */
+    private $result;
+    /** @var Result[] */
+    private $results;
+    /** @var Validator */
+    private $validator;
+    /**
+     * @var array|TokenParserInterface[]
+     */
+    private $tokenParsers;
+
+    //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /** @return Logger */
+    final public function getLogger()
+    {
+        return $this->logger;
+    }
+
+    /** @return Result[] */
+    final public function getResults()
+    {
+        return $this->results;
+    }
+
+    //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /**
+     * @param Validator $validator
+     * @param TokenParserInterface[] $tokenParsers
+     * @param Logger $logger
+     */
+    final public function __construct(Validator $validator, Logger $logger, array $tokenParsers = []) {
+        $this->logger = $logger;
+        $this->validator = $validator;
+        $this->tokenParsers = $tokenParsers;
+    }
+
+    final public function parse($contents)
+    {
+        return $this->parseString($contents);
+    }
+
+    ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    private function parseString($contents)
+    {
+        $tokens = token_get_all($contents);
+
+        $this->parseTokens($tokens);
+
+        return $this->results;
+    }
+
+    /**
+     * @param array $tokens
+     */
+    private function parseTokens(array $tokens)
+    {
+        foreach ($tokens as $index => $token) {
+            $this->handleToken($tokens, $index, $token);
+        }
+    }
+
+    private function handleToken(array $tokens, $index, $token)
+    {
+        if ($this->getLogger()->isDebug()) {
+            $this->getLogger()->resetCodeLine(sprintf('[%05s]: ', 1));
+            $this->getLogger()->resetTokenLine();
+        }
+
+        if (is_string($token[0]) === false) {
+            $token[0] = token_name($token[0]);
+            $tokens[$index][0] = $token[0];
+        }
+
+        if ($this->getLogger()->isDebug()) {
+            if (isset($token[1])) {
+                $this->getLogger()->concatCodeLine($token[1]);
+            } else {
+                $this->getLogger()->concatCodeLine($token[0]);
+            }
+
+            $this->getLogger()->concatTokenLine(' '.$token[0]);
+        }
+
+        // (?:file|http|ftp|php|zlib|data|glob|phar|ssh2|rar|ogg|expect)://
+
+        // SplFileInfo | SplFileObject | SplTempFileObject
+
+        $this->parseToken($tokens, $index, $token);
+    }
+
+    /**
+     * @param array $tokens
+     * @param $index
+     * @param $token
+     */
+    private function parseToken(array $tokens, $index, $token)
+    {
+        foreach ($this->tokenParsers as $tokenParser) {
+            if ($tokenParser->supportsTokens($token[0])) {
+                $tokenParser->parseToken($tokens, $index, $token);
+            }
+        }
+    }
+}
+
+/*EOF*/
