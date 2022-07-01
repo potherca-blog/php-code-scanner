@@ -10,7 +10,7 @@ class NetworkFunctionsIdentifier extends AbstractSingleTypeIdentifier
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /** @var array */
     private static $functions = [
-        /* cUrl */
+        /* cURL */
         'curl_init',
         'curl_setopt',
         'curl_setopt_array',

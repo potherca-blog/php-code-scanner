@@ -127,7 +127,7 @@ class ScannerFactory
             new NodeTraverser(),
             [
                 /* @NOTE: The order Visitors are registered in is of importance */
-                new NameResolver(null, ['preserveOriginalNames'=>true]),
+                //new NameResolver(null, ['preserveOriginalNames'=>true]),
                 $visitor,
             ]
         );
